@@ -22,11 +22,11 @@
 返回js对象，描述节点的信息
 
 ### init.ts
-vnode渲染成真实DOM的过程：
+#### vnode渲染成真实DOM的过程：
 1. patch(oldVnode,newVnode)
 2. 打补丁，把新节点变化的内容渲染到真实DOM，最后返回新节点作为下一次处理的旧节点
 
-patch执行的整体过程：
+#### patch执行的整体过程：
 1. 对比新旧vnode是否是相同节点（节点的key（唯一标识）和sel（选择器）相同）
 2. 如果不是相同节点，直接删除，重新渲染
 3. 如果是相同节点，再判断新的vnode是否有text，如果有并且和oldVNode的text不同，直接更新文本内容
@@ -69,6 +69,43 @@ patch执行的整体过程：
       * 清空对应DOM元素的textContent
   * 第三阶段，钩子函数的执行
     * 触发postpatch钩子函数
+
+#### updateChildren 
+1. 对比新旧节点的children，更新DOM
+2. 执行过程
+   1. 同层比较深度优先遍历，时间复杂度O(n)
+   2. 在进行同级别节点比较的时候，首先会对新老节点数组的开始和结尾节点设置标记索引，遍历的过程中移动索引
+   3. 新旧节点两两比较
+      1. oldStartVnode/newStartVnode
+      2. oldEndVnode/newEndVnode
+      3. oldStartVnode/newEndVnode
+      4. oldEndVnode/newStartVnode
+3. 新旧节点两两比较算法过程
+   1. oldStartVnode和newStartVnode是sameVnode
+      1. 调用patchVnode对比更新节点
+      2. oldStartIdx++/newStartIdx++
+   2. oldStartVnode和newEndVnode是sameVnode
+      1. 调用patchVnode对比更新节点
+      2. 把oldStartVnode对应的DOM移动到右边
+      3. 更新索引
+   3. oldEndVnode和newStartVnode是sameVnode
+      1. 调用patchVnode对比更新节点
+      2. 把oldEndVnode对应的DOM移动到左边
+      3. 更新索引
+   4. 如果都不是上面的情况
+      1. 遍历新节点，使用newStartVnode的key在老节点数组中找相同节点
+      2. 如果没有找到，说明newStartVnode是新节点
+         1. 创建新节点对应的DOM对象，插入到DOM树中
+      3. 如果找到了
+         1. 判断新节点和找到的老节点sel选择器是否相同
+         2. 如果不相同，说明节点修改了
+            1. 重新创建对应的DOM插入到DOM树中
+         3. 如果相同，把elmToMove对应的DOM元素，移动到左边
+   5. 循环结束
+      1. oldStartIdx>oldEndIdx
+      2. newStartIdx>newEndIdx
+   6. 如果老节点数组先遍历完，说明新节点有剩余，被剩余节点批量插入到右边
+   7. 如果新节点数组先遍历完，说明老节点有剩余，把剩余节点批量删除
 
 ## 调试快捷键
 第一个按钮是继续执行到下一个断点
